@@ -6,6 +6,11 @@
 
 namespace Rhodeus
 {
+    extern int InstalledComponentAddrStart __asm("section$start$__DATA$__MYSECTION");
+    extern int InstalledComponentAddrStop  __asm("section$end$__DATA$__MYSECTION");
+    extern int InstalledComponentInitializerStart __asm("section$start$__DATA$__MYINITIALIZER");
+    extern int InstalledComponentInitializerStop  __asm("section$end$__DATA$__MYINITIALIZER");
+
     class AbstractComponent
     {
     public:
@@ -45,4 +50,10 @@ namespace Rhodeus
         std::vector<AbstractComponent*> m_components;
     };
 }
+
+#define INSTALL_COMPONENT_ASSIGN    __attribute__ ((used, section ("__DATA,__RHCOMPS")))
+#define INSTALL_COMPONENT_INITIALIZER_ASSIGN __attribute__ ((used, section ("__DATA,__RHINIT")))
+#define INSTALL_COMPONENT(c) static AbstractComponent* component INSTALL_COMPONENT_ASSIGN = &c
+#define INSTALL_COMPONENT_INITIALIZER(i) static void(*initializer)(void) INSTALL_COMPONENT_INITIALIZER_ASSIGN = &i
+
 #endif // INCLUDED_RHODEUS_ABSTRACT_COMPONENT_HPP

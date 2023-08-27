@@ -42,15 +42,32 @@ message("[rhodeus] Build Type: ${CMAKE_BUILD_TYPE}")
 message("[rhodeus] C Version: ${CMAKE_C_STANDARD}")
 message("[rhodeus] C++ Version: ${CMAKE_CXX_STANDARD}")
 
-set(src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Application.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Configuration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AbstractComponent.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Configuration/Configuration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc/Ipc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc/IpcClient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc/IpcServer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Message.cpp
     )
 
-add_executable(Rhodeus ${src})
+set(INC
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    ${Boost_INCLUDE_DIRS}
+    )
+
+set(LIBS
+    fmt::fmt
+    plog::plog
+    nlohmann_json::nlohmann_json
+    cppzmq
+    ${Boost_LIBRARIES}
+    )
+
+add_executable(Rhodeus
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+    ${SRC})
 
 target_include_directories(Rhodeus
     PRIVATE
@@ -59,28 +76,15 @@ target_include_directories(Rhodeus
 
 target_include_directories(Rhodeus
     PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    ${INC}
     )
 
 target_link_libraries(Rhodeus
     PRIVATE
-    fmt::fmt
-    plog::plog
-    nlohmann_json::nlohmann_json
-    cppzmq
+    ${LIBS}
     )
 
-if (Boost_FOUND)
-    message("[rhodeus] Boost found")
-
-    target_include_directories(Rhodeus
-        PRIVATE
-        ${Boost_INCLUDE_DIRS}
-        )
-
-    target_link_libraries(Rhodeus
-        PRIVATE
-        ${Boost_LIBRARIES}
-        )
+if (RHODEUS_TEST_ENABLED)
+    add_subdirectory(test)
 endif()
 

@@ -33,6 +33,8 @@ namespace Rhodeus
         int32_t run(int32_t argc, char** argv);
         static void signalHandler(int32_t signum);
 
+        const ApplicationData& data() const { return const_cast<ApplicationData&>(Data); }
+
     protected:
         Application() {}
         Application(Application const&) = delete;

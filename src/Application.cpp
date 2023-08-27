@@ -10,7 +10,10 @@
 #include <plog/Initializers/RollingFileInitializer.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
 #include "rhodeus/Application.hpp"
-#include "rhodeus/Ipc.hpp"
+#include "rhodeus/Ipc/Ipc.hpp"
+#include "rhodeus/Ipc/IpcClient.hpp"
+#include "rhodeus/Ipc/IpcServer.hpp"
+#include "rhodeus/Configuration/Configuration.hpp"
 
 using namespace Rhodeus;
 
@@ -30,11 +33,7 @@ const ApplicationData Application::Data =
 
 std::string Application::DataFolder = fs::current_path().string();
 
-std::vector<AbstractComponent*> Application::m_components
-{
-    &IpcServer::getInstance().setName("Gateway").setId(0),
-    &IpcClient::getInstance().setName("Launcher").setId(1)
-};
+std::vector<AbstractComponent*> Application::m_components{};
 
 int32_t Application::run(int32_t argc, char** argv)
 {
@@ -43,9 +42,31 @@ int32_t Application::run(int32_t argc, char** argv)
     getInstance().registerSignalHandlers();
     getInstance().initializeDataFolder();
     getInstance().initializeLoggers();
+    Configuration::getInstance().initialize(fs::path(DataFolder).append(Data.configFile).string());
 
     PLOGI << fmt::format("Welcome to {} v{}", Data.name, Data.version);
     PLOGI << fmt::format("Data folder: {}", DataFolder);
+
+    int componentCount = ((long)&InstalledComponentAddrStop - (long)&InstalledComponentAddrStart) / sizeof(void*);
+
+    PLOGI << fmt::format("Found {} components", componentCount);
+
+    for (uint32_t componentIndex = 0; componentIndex < componentCount; componentIndex++)
+    {
+        AbstractComponent* component = (AbstractComponent*)*((long*)&InstalledComponentAddrStart + componentIndex);
+        PLOGI << fmt::format("Component {} found", component->name());
+        m_components.push_back(component);
+    }
+
+    int componentInitializedCount = ((long)&InstalledComponentInitializerStop - (long)&InstalledComponentInitializerStart) / sizeof(void*);
+
+    PLOGI << fmt::format("Found {} component initializers", componentInitializedCount);
+
+    for (uint32_t componentIndex = 0; componentIndex < componentInitializedCount; componentIndex++)
+    {
+        void(*initializer)(void) = (void(*)(void))*((long*)&InstalledComponentInitializerStart + componentIndex);
+        initializer();
+    }
 
     for (;;)
     {
