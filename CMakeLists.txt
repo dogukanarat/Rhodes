@@ -45,6 +45,7 @@ message("[rhodeus] C++ Version: ${CMAKE_CXX_STANDARD}")
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Application.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AbstractComponent.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Setup.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Configuration/Configuration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc/Ipc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc/IpcClient.cpp

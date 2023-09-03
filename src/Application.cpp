@@ -19,18 +19,6 @@ using namespace Rhodeus;
 
 #define DATA_FOLDER_PATH       "/opt/rhodeus/"
 
-const ApplicationData Application::Data =
-{
-    .name = "Rhodeus",
-    .description = "Rhodeus is a template for C++ applications.",
-    .version = "0.0.1",
-    .logFile = "log.txt",
-    .configFile = "config.json",
-    .commandFile = "command.json",
-    .logFileMaxSize = 1000000,
-    .logFileMaxCount = 3
-};
-
 std::string Application::DataFolder = fs::current_path().string();
 
 std::vector<AbstractComponent*> Application::m_components{};

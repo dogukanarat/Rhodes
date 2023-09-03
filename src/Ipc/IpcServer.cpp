@@ -100,9 +100,8 @@ void IpcServer::task(IpcServer *server)
 
 static void setup(void)
 {
-    IpcServer::getInstance().setId(1);
-    std::cout << fmt::format("Setting up IpcServer...") << std::endl;
+    IpcServer::getInstance().setId(1).setName("Gateway");
 }
 
-INSTALL_COMPONENT(IpcServer::getInstance());
-INSTALL_COMPONENT_INITIALIZER(setup);
+INSTALL_COMPONENT(Gateway, IpcServer::getInstance());
+INSTALL_COMPONENT_INITIALIZER(Gateway, setup);

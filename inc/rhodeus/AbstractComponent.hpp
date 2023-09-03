@@ -53,7 +53,7 @@ namespace Rhodeus
 
 #define INSTALL_COMPONENT_ASSIGN    __attribute__ ((used, section ("__DATA,__RHCOMPS")))
 #define INSTALL_COMPONENT_INITIALIZER_ASSIGN __attribute__ ((used, section ("__DATA,__RHINIT")))
-#define INSTALL_COMPONENT(c) static AbstractComponent* component INSTALL_COMPONENT_ASSIGN = &c
-#define INSTALL_COMPONENT_INITIALIZER(i) static void(*initializer)(void) INSTALL_COMPONENT_INITIALIZER_ASSIGN = &i
+#define INSTALL_COMPONENT(n, c) static AbstractComponent* n INSTALL_COMPONENT_ASSIGN = &c
+#define INSTALL_COMPONENT_INITIALIZER(n, i) static void(*n_initializer)(void) INSTALL_COMPONENT_INITIALIZER_ASSIGN = &i
 
 #endif // INCLUDED_RHODEUS_ABSTRACT_COMPONENT_HPP

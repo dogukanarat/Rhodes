@@ -126,5 +126,5 @@ static void setup(void)
     std::cout << fmt::format("Setting up IpcClient\n");
 }
 
-INSTALL_COMPONENT(IpcClient::getInstance());
-INSTALL_COMPONENT_INITIALIZER(setup);
+INSTALL_COMPONENT(Launcher, IpcClient::getInstance());
+INSTALL_COMPONENT_INITIALIZER(Launcher, setup);

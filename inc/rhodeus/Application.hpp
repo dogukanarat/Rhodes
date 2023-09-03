@@ -47,6 +47,7 @@ namespace Rhodeus
     private:
         const static ApplicationData Data;
         static std::string DataFolder;
+
         uint8_t m_isExitRequested;
         static std::vector<AbstractComponent*> m_components;
     };
