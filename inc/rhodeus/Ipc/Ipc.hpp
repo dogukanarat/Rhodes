@@ -4,7 +4,7 @@
 #include <string>
 #include <thread>
 #include <zmq.hpp>
-#include "rhodeus/AbstractComponent.hpp"
+#include "rhodeus/Component.hpp"
 
 namespace Rhodeus
 {

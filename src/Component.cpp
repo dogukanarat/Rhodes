@@ -1,5 +1,5 @@
 #include <iostream>
-#include "rhodeus/AbstractComponent.hpp"
+#include "rhodeus/Component.hpp"
 
 using namespace Rhodeus;
 

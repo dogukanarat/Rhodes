@@ -123,7 +123,7 @@ void IpcClient::task(IpcClient *client)
 static void setup(void)
 {
     IpcClient::getInstance().setId(0).setName("Launcher");
-    std::cout << fmt::format("Setting up IpcClient\n");
+    std::cout << fmt::format("Setting up IpcClient") << std::endl;
 }
 
 INSTALL_COMPONENT(Launcher, IpcClient::getInstance());

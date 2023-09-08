@@ -23,8 +23,9 @@ find_package(PkgConfig REQUIRED)
 find_package(fmt REQUIRED)
 find_package(plog REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Boost REQUIRED COMPONENTS filesystem iostreams)
+find_package(Boost COMPONENTS filesystem iostreams system REQUIRED)
 find_package(cppzmq REQUIRED)
+find_package(ftxui REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -44,7 +45,7 @@ message("[rhodeus] C++ Version: ${CMAKE_CXX_STANDARD}")
 
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Application.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AbstractComponent.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Component.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Setup.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Configuration/Configuration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Ipc/Ipc.cpp
@@ -63,6 +64,9 @@ set(LIBS
     plog::plog
     nlohmann_json::nlohmann_json
     cppzmq
+    ftxui::screen
+    ftxui::dom
+    ftxui::component
     ${Boost_LIBRARIES}
     )
 

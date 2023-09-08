@@ -5,7 +5,7 @@
 #include <plog/Initializers/RollingFileInitializer.h>
 #include "rhodeus/Common.hpp"
 #include "rhodeus/CustomLogFormatter.hpp"
-#include "rhodeus/AbstractComponent.hpp"
+#include "rhodeus/Component.hpp"
 
 namespace Rhodeus
 {
