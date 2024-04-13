@@ -23,6 +23,10 @@ namespace Rhodeus
 
     class Application
     {
+    private:
+        const static ApplicationData Data;
+        static std::vector<AbstractComponent*> Components;
+
     public:
         static Application& getInstance()
         {
@@ -36,7 +40,9 @@ namespace Rhodeus
         const ApplicationData& data() const { return const_cast<ApplicationData&>(Data); }
 
     protected:
-        Application() {}
+        Application()
+            : mIsExitRequested{false}
+        {}
         Application(Application const&) = delete;
         void operator=(Application const&) = delete;
 
@@ -45,11 +51,8 @@ namespace Rhodeus
         void registerSignalHandlers();
 
     private:
-        const static ApplicationData Data;
-        static std::string DataFolder;
-
-        uint8_t m_isExitRequested;
-        static std::vector<AbstractComponent*> m_components;
+        uint8_t mIsExitRequested;
+        std::string mDataFolder;
     };
 }
 

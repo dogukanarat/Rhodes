@@ -1,4 +1,4 @@
-#include <rhodeus/Application.hpp>
+#include <../include/rhodeus/Application.hpp>
 
 int main(int argc, char** argv)
 {

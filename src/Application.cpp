@@ -1,88 +1,84 @@
+#include <signal.h>
 #include <chrono>
 #include <csignal>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
-#include <signal.h>
+
 #include <fmt/format.h>
 #include <fmt/color.h>
 #include <plog/Log.h>
 #include <plog/Initializers/RollingFileInitializer.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
-#include "rhodeus/Application.hpp"
-#include "rhodeus/Ipc/Ipc.hpp"
-#include "rhodeus/Ipc/IpcClient.hpp"
-#include "rhodeus/Ipc/IpcServer.hpp"
-#include "rhodeus/Configuration/Configuration.hpp"
+#include <linenoisecli/linenoisecli.hpp>
+
+#include <../include/rhodeus/Application.hpp>
+#include <../include/rhodeus/Ipc/Ipc.hpp>
+#include <../include/rhodeus/Ipc/IpcClient.hpp>
+#include <../include/rhodeus/Ipc/IpcServer.hpp>
+#include <../include/rhodeus/Configuration/Configuration.hpp>
 
 using namespace Rhodeus;
 
 #define DATA_FOLDER_PATH       "/opt/rhodeus/"
 
-std::string Application::DataFolder = fs::current_path().string();
+std::vector<AbstractComponent*> Application::Components{};
 
-std::vector<AbstractComponent*> Application::m_components{};
-
-int32_t Application::run(int32_t argc, char** argv)
+int32_t Application::run(int argc, char** argv)
 {
     int32_t status = 0;
+
+    mDataFolder = fs::current_path().string();
 
     getInstance().registerSignalHandlers();
     getInstance().initializeDataFolder();
     getInstance().initializeLoggers();
-    Configuration::getInstance().initialize(fs::path(DataFolder).append(Data.configFile).string());
+    Configuration::getInstance().initialize(
+        fs::path(mDataFolder).append(Data.configFile).string()
+    );
 
     PLOGI << fmt::format("Welcome to {} v{}", Data.name, Data.version);
-    PLOGI << fmt::format("Data folder: {}", DataFolder);
-
-    int componentCount = ((long)&InstalledComponentAddrStop - (long)&InstalledComponentAddrStart) / sizeof(void*);
-
-    PLOGI << fmt::format("Found {} components", componentCount);
-
-    for (uint32_t componentIndex = 0; componentIndex < componentCount; componentIndex++)
-    {
-        AbstractComponent* component = (AbstractComponent*)*((long*)&InstalledComponentAddrStart + componentIndex);
-        PLOGI << fmt::format("Component {} found", component->name());
-        m_components.push_back(component);
-    }
-
-    int componentInitializedCount = ((long)&InstalledComponentInitializerStop - (long)&InstalledComponentInitializerStart) / sizeof(void*);
-
-    PLOGI << fmt::format("Found {} component initializers", componentInitializedCount);
-
-    for (uint32_t componentIndex = 0; componentIndex < componentInitializedCount; componentIndex++)
-    {
-        void(*initializer)(void) = (void(*)(void))*((long*)&InstalledComponentInitializerStart + componentIndex);
-        initializer();
-    }
+    PLOGI << fmt::format("Data folder: {}", mDataFolder);
 
     for (;;)
     {
-        for (auto component : m_components)
+        for (auto component : Components)
         {
             status = component->initialize();
             if (status != 0)
             {
-                PLOGE << fmt::format("Component {} initialization failed with status {}", component->name(), status);
+                PLOGE << fmt::format(
+                    "Component {} initialization failed with status {}",
+                     component->name(),
+                    status
+                );
             }
         }
 
         PLOGI << fmt::format("Press Ctrl+C to exit...");
 
+        linenoisecli::cli::getInstance().run(argc, argv);
+
         for (;;)
         {
-            if (m_isExitRequested) { break; }
+            if (mIsExitRequested || linenoisecli::cli::getInstance().isExitRequested()) { break; }
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         PLOGI << fmt::format("Exiting safely...");
 
-        for (auto component : m_components)
+        linenoisecli::cli::getInstance().destroy();
+
+        for (auto component : Components)
         {
             status = component->finalize();
             if (status != 0)
             {
-                PLOGE << fmt::format("Component {} finalization failed with status {}", component->name(), status);
+                PLOGE << fmt::format(
+                    "Component {} finalization failed with status {}",
+                     component->name(),
+                     status
+                );
             }
         }
 
@@ -97,31 +93,48 @@ int32_t Application::run(int32_t argc, char** argv)
 
 void Application::initializeDataFolder()
 {
+    bool isDirCreated = false;
+    fs::path dataFolder(DATA_FOLDER_PATH);
+
     try
     {
-        fs::path dataFolder(DATA_FOLDER_PATH);
-
         if (!fs::exists(dataFolder))
         {
-            fs::create_directory(dataFolder);
+            isDirCreated = fs::create_directory(dataFolder);
+
+            if (!isDirCreated)
+            {
+                throw std::runtime_error(
+                    fmt::format("Failed to create data folder: {}",
+                        dataFolder.string()
+                    )
+                );
+            }
         }
 
-        DataFolder = fs::canonical(dataFolder).string();
+        mDataFolder = fs::canonical(dataFolder).string();
     }
     catch(const std::exception& e)
     {
-        // no logging here, because logging is not initialized yet
+        std::cerr
+            << CERR_LOG_RED "Exception: "
+            << e.what()
+            << CERR_LOG_CLR
+            << std::endl;
     }
 }
 
 void Application::initializeLoggers()
 {
-    fs::create_directory(fs::path(DataFolder).append("logs"));
-    std::string logFile = fs::path(DataFolder).append("logs").append(Data.logFile).string();
+    fs::create_directory(fs::path(mDataFolder).append("logs"));
+    std::string logFile = fs::path(mDataFolder)
+        .append("logs")
+        .append(Data.logFile)
+        .string();
 
-    static plog::ColorConsoleAppender<Rhodeus::CustomLogFormatter> consoleAppender;
+    static plog::ColorConsoleAppender<CustomLogFormatter> consoleAppender;
 
-    static plog::RollingFileAppender<Rhodeus::CustomLogFormatter> fileAppender(
+    static plog::RollingFileAppender<CustomLogFormatter> fileAppender(
             logFile.c_str(),
             Data.logFileMaxSize,
             Data.logFileMaxCount);
@@ -146,14 +159,21 @@ void Application::signalHandler(int32_t signum)
         signalName = signalMap[signum];
     }
 
-    std::cerr << CERR_LOG_RED "Interrupt signal (" << signalName << ") received" CERR_LOG_CLR << std::endl;
+    std::cerr << "\r";
+    std::cerr
+        << CERR_LOG_RED "Interrupt signal ("
+        << signalName
+        << ") received" CERR_LOG_CLR
+        << std::endl;
     std::cerr << "Application will be terminated safely!" << std::endl;
     std::cerr << std::flush;
-    Application::getInstance().m_isExitRequested = true;
+    Application::getInstance().mIsExitRequested = true;
 }
 
 void sigActionSegFault(int signal, siginfo_t *si, void *arg)
 {
+    UNUSED(signal);
+    UNUSED(arg);
     printf("Caught segfault at address %p\n", si->si_addr);
     exit(0);
 }

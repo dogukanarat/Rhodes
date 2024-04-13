@@ -6,18 +6,13 @@
 
 namespace Rhodeus
 {
-    extern int InstalledComponentAddrStart __asm("section$start$__DATA$__MYSECTION");
-    extern int InstalledComponentAddrStop  __asm("section$end$__DATA$__MYSECTION");
-    extern int InstalledComponentInitializerStart __asm("section$start$__DATA$__MYINITIALIZER");
-    extern int InstalledComponentInitializerStop  __asm("section$end$__DATA$__MYINITIALIZER");
-
     class AbstractComponent
     {
     public:
-        AbstractComponent(std::string name);
+        AbstractComponent(const std::string& name);
         virtual ~AbstractComponent();
 
-        std::string name() const { return m_name; }
+        std::string name() const { return _name; }
 
         virtual int32_t initialize() = 0;
         virtual int32_t finalize() = 0;
@@ -26,7 +21,7 @@ namespace Rhodeus
         void emit(const std::string& signalName);
 
     private:
-        std::string m_name;
+        std::string _name;
     };
 
     class ComponentManager
@@ -47,13 +42,8 @@ namespace Rhodeus
         void operator=(ComponentManager const&) = delete;
 
     private:
-        std::vector<AbstractComponent*> m_components;
+        std::vector<AbstractComponent*> _components;
     };
 }
-
-#define INSTALL_COMPONENT_ASSIGN    __attribute__ ((used, section ("__DATA,__RHCOMPS")))
-#define INSTALL_COMPONENT_INITIALIZER_ASSIGN __attribute__ ((used, section ("__DATA,__RHINIT")))
-#define INSTALL_COMPONENT(n, c) static AbstractComponent* n INSTALL_COMPONENT_ASSIGN = &c
-#define INSTALL_COMPONENT_INITIALIZER(n, i) static void(*n_initializer)(void) INSTALL_COMPONENT_INITIALIZER_ASSIGN = &i
 
 #endif // INCLUDED_RHODEUS_ABSTRACT_COMPONENT_HPP

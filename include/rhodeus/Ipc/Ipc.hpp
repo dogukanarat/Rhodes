@@ -3,8 +3,10 @@
 
 #include <string>
 #include <thread>
+
 #include <zmq.hpp>
-#include "rhodeus/Component.hpp"
+
+#include <rhodeus/Component.hpp>
 
 namespace Rhodeus
 {
@@ -30,15 +32,18 @@ namespace Rhodeus
     class IpcEndPoint : public AbstractComponent
     {
         friend class IpcContext;
-    public:
+    protected:
+        static zmq::context_t Context;
 
     protected:
-        IpcEndPoint(std::string name) : AbstractComponent(name) {}
+        IpcEndPoint(const std::string& name) : AbstractComponent(name)
+            , _endPointId{0}
+            , _endPointName{}
+        {}
 
     protected:
-        uint32_t m_id;
-        std::string m_name;
-        static zmq::context_t context;
+        uint32_t _endPointId;
+        std::string _endPointName;
     };
 }
 

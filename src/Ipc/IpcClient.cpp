@@ -1,6 +1,7 @@
 #include <iostream>
-#include "rhodeus/Ipc/IpcClient.hpp"
-#include "rhodeus/Message.hpp"
+
+#include "../../include/rhodeus/Ipc/IpcClient.hpp"
+#include "../../include/rhodeus/Message.hpp"
 
 using namespace Rhodeus;
 
@@ -8,7 +9,7 @@ int32_t IpcClient::initialize()
 {
     int32_t status = 0;
 
-    m_thread = new std::thread(&IpcClient::task, this);
+    _thread = new std::thread(&IpcClient::task, this);
 
     PLOGD << "IpcClient initialized";
 
@@ -21,12 +22,12 @@ int32_t IpcClient::finalize()
 {
     int32_t status = 0;
 
-    if (m_thread != nullptr)
+    if (nullptr != _thread)
     {
-        m_isExitRequested = true;
-        m_thread->join();
-        delete m_thread;
-        m_thread = nullptr;
+        mIsExitRequested = true;
+        _thread->join();
+        delete _thread;
+        _thread = nullptr;
     }
 
     PLOGD << "IpcClient finalized";
@@ -42,7 +43,7 @@ void IpcClient::task(IpcClient *client)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    zmq::socket_t socketTx(context, zmq::socket_type::pair);
+    zmq::socket_t socketTx(Context, zmq::socket_type::pair);
     bool isConnected = false;
 
     // set timeouts
@@ -58,7 +59,7 @@ void IpcClient::task(IpcClient *client)
         {
             try
             {
-                if (isConnected == false)
+                if (false == isConnected)
                 {
                     socketTx.connect("tcp://localhost:5555");
                     isConnected = true;
@@ -75,14 +76,14 @@ void IpcClient::task(IpcClient *client)
                 PLOGE << fmt::format("Error occured while connecting socketTx: {}", e.what());
             }
 
-            if (!isConnected)
+            if (false == isConnected)
             {
                 break;
             }
 
             Message initialMessage;
             nlohmann::json json;
-            json["id"] = client->m_id;
+            json["id"] = client->_endPointId;
             json["name"] = "Rhodeus";
             json["request"] = "initial";
             initialMessage.append(json.dump()).build();
@@ -104,15 +105,21 @@ void IpcClient::task(IpcClient *client)
                 break;
             }
 
-            std::string replyStr(static_cast<char*>(reply.data()), reply.size());
+            Message initialMessageReply(static_cast<char*>(reply.data()), reply.size());
 
-            PLOGI << fmt::format("Reply received! Reply: {}", replyStr);
+            if (0 == initialMessageReply.lastErrorCode())
+            {
+                PLOGI << fmt::format("Reply received! Reply: {}", initialMessageReply.toString());
+                client->mIsExitRequested = true;
+            }
+
+
 
             break;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (client->m_isExitRequested) { break; }
+        if (client->mIsExitRequested) { break; }
     }
 
     socketTx.close();
@@ -120,11 +127,10 @@ void IpcClient::task(IpcClient *client)
     PLOGD << "IpcClient task finished";
 }
 
+#if 0
 static void setup(void)
 {
     IpcClient::getInstance().setId(0).setName("Launcher");
     std::cout << fmt::format("Setting up IpcClient") << std::endl;
 }
-
-INSTALL_COMPONENT(Launcher, IpcClient::getInstance());
-INSTALL_COMPONENT_INITIALIZER(Launcher, setup);
+#endif

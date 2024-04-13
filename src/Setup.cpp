@@ -1,4 +1,4 @@
-#include "rhodeus/Application.hpp"
+#include "../include/rhodeus/Application.hpp"
 
 using namespace Rhodeus;
 
