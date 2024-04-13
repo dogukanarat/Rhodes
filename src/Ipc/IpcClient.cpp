@@ -9,7 +9,7 @@ int32_t IpcClient::initialize()
 {
     int32_t status = 0;
 
-    _thread = new std::thread(&IpcClient::task, this);
+    mThread = new std::thread(&IpcClient::task, this);
 
     PLOGD << "IpcClient initialized";
 
@@ -22,12 +22,12 @@ int32_t IpcClient::finalize()
 {
     int32_t status = 0;
 
-    if (nullptr != _thread)
+    if (nullptr != mThread)
     {
         mIsExitRequested = true;
-        _thread->join();
-        delete _thread;
-        _thread = nullptr;
+        mThread->join();
+        delete mThread;
+        mThread = nullptr;
     }
 
     PLOGD << "IpcClient finalized";
@@ -83,7 +83,7 @@ void IpcClient::task(IpcClient *client)
 
             Message initialMessage;
             nlohmann::json json;
-            json["id"] = client->_endPointId;
+            json["id"] = client->mEndPointId;
             json["name"] = "Rhodeus";
             json["request"] = "initial";
             initialMessage.append(json.dump()).build();

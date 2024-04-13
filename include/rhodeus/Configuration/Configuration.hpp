@@ -24,9 +24,9 @@ namespace Rhodeus
         {
             T value = defaultValue;
 
-            if (m_config.contains(key))
+            if (mConfig.contains(key))
             {
-                value = m_config[key].get<T>();
+                value = mConfig[key].get<T>();
             }
 
             return value;
@@ -35,7 +35,7 @@ namespace Rhodeus
         template <typename T>
         int32_t set(const std::string& key, T value)
         {
-            m_config[key] = value;
+            mConfig[key] = value;
 
             return 0;
         }
@@ -49,7 +49,7 @@ namespace Rhodeus
             void loadConfigFile(const std::string& configFilePath);
 
         private:
-            json::json m_config;
+            json::json mConfig;
 
     };
 }

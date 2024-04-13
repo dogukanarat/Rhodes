@@ -13,8 +13,10 @@ namespace Rhodeus
     {
         std::string name;
         std::string description;
+        std::string prompt;
         std::string version;
         std::string logFile;
+        std::string historyFile;
         std::string configFile;
         std::string commandFile;
         uint32_t logFileMaxSize;
@@ -25,14 +27,9 @@ namespace Rhodeus
     {
     private:
         const static ApplicationData Data;
-        static std::vector<AbstractComponent*> Components;
 
     public:
-        static Application& getInstance()
-        {
-            static Application instance;
-            return instance;
-        }
+        static Application& getInstance();
 
         int32_t run(int32_t argc, char** argv);
         static void signalHandler(int32_t signum);
@@ -51,7 +48,7 @@ namespace Rhodeus
         void registerSignalHandlers();
 
     private:
-        uint8_t mIsExitRequested;
+        bool mIsExitRequested;
         std::string mDataFolder;
     };
 }

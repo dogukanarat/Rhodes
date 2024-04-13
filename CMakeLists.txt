@@ -27,6 +27,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+option(RHODEUS_TEST_ENABLED "Enable testing" ON)
+
 # Define compiler flags
 add_compile_options(-pedantic -Wall -Wextra)
 
@@ -50,12 +52,10 @@ find_package(PkgConfig REQUIRED)
 find_package(fmt REQUIRED)
 find_package(plog REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Boost COMPONENTS filesystem iostreams system REQUIRED)
 find_package(cppzmq REQUIRED)
 find_package(linenoisecli REQUIRED)
 
 set(DEP_INCLUDE_DIRS
-    ${Boost_INCLUDE_DIRS}
     ${linenoisecli_INCLUDE_DIRS}
     )
 
@@ -64,7 +64,6 @@ set(DEP_LIBRARIES
     plog::plog
     nlohmann_json::nlohmann_json
     cppzmq
-    ${Boost_LIBRARIES}
     ${linenoisecli_LIBRARIES}
     )
 
@@ -84,14 +83,21 @@ set(PUB_HEADERS
     )
 
 set(PROJECT_APP_NAME ${PROJECT_NAME}App)
+set(PROJECT_LIB_NAME ${PROJECT_NAME}Lib)
 
-add_executable(${PROJECT_APP_NAME} ${SOURCES} src/main.cpp)
+add_library(${PROJECT_LIB_NAME} STATIC ${SOURCES})
+target_include_directories(${PROJECT_LIB_NAME} PUBLIC include)
+target_include_directories(${PROJECT_LIB_NAME} PRIVATE src)
+target_include_directories(${PROJECT_LIB_NAME} PRIVATE ${DEP_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_LIB_NAME} PRIVATE ${DEP_LIBRARIES})
+
+add_executable(${PROJECT_APP_NAME} src/Main.cpp)
 target_include_directories(${PROJECT_APP_NAME} PUBLIC include)
 target_include_directories(${PROJECT_APP_NAME} PRIVATE src)
 target_include_directories(${PROJECT_APP_NAME} PRIVATE ${DEP_INCLUDE_DIRS})
 
-target_link_libraries(${PROJECT_APP_NAME} PRIVATE ${DEP_LIBRARIES})
+target_link_libraries(${PROJECT_APP_NAME} PRIVATE ${DEP_LIBRARIES} ${PROJECT_LIB_NAME})
 
-if (RHODEUS_TEST_ENABLED)
+if (RHODEUS_TEST_ENABLED STREQUAL "ON")
     add_subdirectory(test)
 endif()

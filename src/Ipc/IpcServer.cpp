@@ -8,7 +8,7 @@ int32_t IpcServer::initialize()
 {
     int32_t status = 0;
 
-    _thread = new std::thread(&IpcServer::task, this);
+    mThread = new std::thread(&IpcServer::task, this);
 
     PLOGD << "IpcServer initialized";
 
@@ -21,12 +21,12 @@ int32_t IpcServer::finalize()
 {
     int32_t status = 0;
 
-    if (nullptr != _thread)
+    if (nullptr != mThread)
     {
         mIsExitRequested = true;
-        _thread->join();
-        delete _thread;
-        _thread = nullptr;
+        mThread->join();
+        delete mThread;
+        mThread = nullptr;
     }
 
     PLOGD << "IpcServer finalized";

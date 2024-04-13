@@ -37,13 +37,13 @@ namespace Rhodeus
 
     protected:
         IpcEndPoint(const std::string& name) : AbstractComponent(name)
-            , _endPointId{0}
-            , _endPointName{}
+            , mEndPointId{0}
+            , mEndPointName{}
         {}
 
     protected:
-        uint32_t _endPointId;
-        std::string _endPointName;
+        uint32_t mEndPointId;
+        std::string mEndPointName;
     };
 }
 

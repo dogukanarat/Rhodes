@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <plog/Log.h>
-#include <boost/filesystem.hpp>
 
 #define COMMON_COLOR_RED      "\033[31m"
 #define COMMON_COLOR_GREEN    "\033[32m"
@@ -33,6 +32,5 @@ typedef int32_t status_t;
 typedef uint8_t bool_t;
 
 namespace json = nlohmann;
-namespace fs = boost::filesystem;
 
 #endif

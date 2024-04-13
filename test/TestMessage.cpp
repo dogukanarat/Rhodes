@@ -1,6 +1,8 @@
-#include <catch2/catch_test_macros.hpp>
 #include <vector>
-#include "rhodeus/Message.hpp"
+
+#include <catch2/catch_test_macros.hpp>
+
+#include "../include/rhodeus/Message.hpp"
 
 TEST_CASE("message can be serialize with headers and data consecutively", "[Message]")
 {

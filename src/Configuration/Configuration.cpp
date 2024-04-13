@@ -1,6 +1,7 @@
-#include "rhodeus/Configuration/Configuration.hpp"
-#include "rhodeus/Configuration/DefaultConfiguration.hpp"
 #include <fstream>
+
+#include "../include/rhodeus/Configuration/Configuration.hpp"
+#include "../include/rhodeus/Configuration/DefaultConfiguration.hpp"
 
 using namespace Rhodeus;
 
@@ -10,7 +11,7 @@ Configuration& Configuration::initialize(const std::string& configFilePath)
     {
         PLOGI << fmt::format("Configuration initialized with file {}", configFilePath);
 
-        if (false == fs::is_regular_file(configFilePath))
+        if (false == std::filesystem::is_regular_file(configFilePath))
         {
             PLOGW << fmt::format("Configuration file not found");
 
@@ -39,9 +40,9 @@ void Configuration::createDefaultConfigFile(const std::string& configFilePath)
             break;
         }
 
-        m_config = defaultConfiguration();
+        mConfig = defaultConfiguration();
 
-        configFile << m_config.dump(4);
+        configFile << mConfig.dump(4);
 
         configFile.close();
 
@@ -71,7 +72,7 @@ void Configuration::loadConfigFile(const std::string& configFilePath)
             break;
         }
 
-        m_config = fileJson[Application::getInstance().data().name];
+        mConfig = fileJson[Application::getInstance().data().name];
 
         configFile.close();
 

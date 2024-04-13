@@ -22,85 +22,68 @@ using namespace Rhodeus;
 
 #define DATA_FOLDER_PATH       "/opt/rhodeus/"
 
-std::vector<AbstractComponent*> Application::Components{};
+Application& Application::getInstance()
+{
+    static Application instance;
+    return instance;
+}
 
 int32_t Application::run(int argc, char** argv)
 {
     int32_t status = 0;
 
-    mDataFolder = fs::current_path().string();
+    mDataFolder = std::filesystem::current_path().string();
 
-    getInstance().registerSignalHandlers();
-    getInstance().initializeDataFolder();
-    getInstance().initializeLoggers();
+    Application::getInstance().registerSignalHandlers();
+    Application::getInstance().initializeDataFolder();
+    Application::getInstance().initializeLoggers();
+
     Configuration::getInstance().initialize(
-        fs::path(mDataFolder).append(Data.configFile).string()
+        std::filesystem::path(mDataFolder).append(Data.configFile).string()
     );
 
-    PLOGI << fmt::format("Welcome to {} v{}", Data.name, Data.version);
-    PLOGI << fmt::format("Data folder: {}", mDataFolder);
+    std::cout << fmt::format("Welcome to {} v{}", Data.name, Data.version) << std::endl;
+    std::cout << fmt::format("Data folder: {}", mDataFolder) << std::endl;
 
-    for (;;)
+    ComponentManager::getInstance().initializeComponents();
+
+    std::cout << fmt::format("Press Ctrl+C to exit...") << std::endl;
+
+    linenoisecli::cli::getInstance().setPrompt(Data.prompt);
+    linenoisecli::cli::getInstance().setHistoryFile(
+        std::filesystem::path(mDataFolder).append(Data.historyFile).string()
+    );
+    linenoisecli::cli::getInstance().run(argc, argv);
+
+    while ((false == linenoisecli::cli::getInstance().isExitRequested()) && (false == mIsExitRequested))
     {
-        for (auto component : Components)
-        {
-            status = component->initialize();
-            if (status != 0)
-            {
-                PLOGE << fmt::format(
-                    "Component {} initialization failed with status {}",
-                     component->name(),
-                    status
-                );
-            }
-        }
-
-        PLOGI << fmt::format("Press Ctrl+C to exit...");
-
-        linenoisecli::cli::getInstance().run(argc, argv);
-
-        for (;;)
-        {
-            if (mIsExitRequested || linenoisecli::cli::getInstance().isExitRequested()) { break; }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        PLOGI << fmt::format("Exiting safely...");
-
-        linenoisecli::cli::getInstance().destroy();
-
-        for (auto component : Components)
-        {
-            status = component->finalize();
-            if (status != 0)
-            {
-                PLOGE << fmt::format(
-                    "Component {} finalization failed with status {}",
-                     component->name(),
-                     status
-                );
-            }
-        }
-
-        break;
+        // Do nothing
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
+    linenoisecli::cli::getInstance().destroy();
+
+    std::cout << fmt::format("Exiting safely...") << std::endl;
+
+    ComponentManager::getInstance().destroyComponents();
 
     IpcContext::getInstance().clearResources();
 
-    PLOGI << fmt::format("Process status: {}", status);
+    std::cout << fmt::format("Process status: {}", status) << std::endl;
+
     return status;
 }
 
 void Application::initializeDataFolder()
 {
     bool isDirCreated = false;
-    fs::path dataFolder(DATA_FOLDER_PATH);
+    std::filesystem::path dataFolder = std::filesystem::path(DATA_FOLDER_PATH);
 
     try
     {
-        if (!fs::exists(dataFolder))
+        if (!std::filesystem::exists(dataFolder))
         {
-            isDirCreated = fs::create_directory(dataFolder);
+            isDirCreated = std::filesystem::create_directory(dataFolder);
 
             if (!isDirCreated)
             {
@@ -112,7 +95,7 @@ void Application::initializeDataFolder()
             }
         }
 
-        mDataFolder = fs::canonical(dataFolder).string();
+        mDataFolder = std::filesystem::canonical(dataFolder).string();
     }
     catch(const std::exception& e)
     {
@@ -126,8 +109,8 @@ void Application::initializeDataFolder()
 
 void Application::initializeLoggers()
 {
-    fs::create_directory(fs::path(mDataFolder).append("logs"));
-    std::string logFile = fs::path(mDataFolder)
+    std::filesystem::create_directory(std::filesystem::path(mDataFolder).append("logs"));
+    std::string logFile = std::filesystem::path(mDataFolder)
         .append("logs")
         .append(Data.logFile)
         .string();

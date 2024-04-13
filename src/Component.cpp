@@ -30,16 +30,33 @@ void ComponentManager::registerComponent(AbstractComponent* component)
     //     << fmt::format("Component `{}` registered", component->name())
     //     << std::endl;
 
-    _components.push_back(component);
+    mComponents.push_back(component);
 }
+
 void ComponentManager::deregisterComponent(AbstractComponent* component)
 {
     // std::cout
     //     << fmt::format("Component `{}` deregistered", component->name())
     //     << std::endl;
 
-    _components.erase(
-        std::remove(_components.begin(), _components.end(), component),
-        _components.end()
+    mComponents.erase(
+        std::remove(mComponents.begin(), mComponents.end(), component),
+        mComponents.end()
     );
+}
+
+void ComponentManager::initializeComponents()
+{
+    for (auto component : mComponents)
+    {
+        component->initialize();
+    }
+}
+
+void ComponentManager::destroyComponents()
+{
+    for (auto component : mComponents)
+    {
+        component->finalize();
+    }
 }

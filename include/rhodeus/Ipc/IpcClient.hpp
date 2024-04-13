@@ -15,15 +15,15 @@ namespace Rhodeus
             return instance;
         }
 
-        IpcClient& setName(const std::string& name) { _endPointName = name; return *this; }
-        IpcClient& setId(uint32_t id) { _endPointId = id; return *this; }
+        IpcClient& setName(const std::string& name) { mEndPointName = name; return *this; }
+        IpcClient& setId(uint32_t id) { mEndPointId = id; return *this; }
 
         int32_t initialize() override;
         int32_t finalize() override;
 
     protected:
         IpcClient() : IpcEndPoint("IpcClient")
-            ,_thread{nullptr}
+            ,mThread{nullptr}
             ,mIsExitRequested{false}
         {}
         IpcClient(IpcClient const&) = delete;
@@ -33,7 +33,7 @@ namespace Rhodeus
         static void task(IpcClient *client);
 
     private:
-        std::thread* _thread;
+        std::thread* mThread;
         bool mIsExitRequested;
 
     };

@@ -35,6 +35,8 @@ namespace Rhodeus
 
         void registerComponent(AbstractComponent* component);
         void deregisterComponent(AbstractComponent* component);
+        void initializeComponents();
+        void destroyComponents();
 
     protected:
         ComponentManager() {}
@@ -42,7 +44,7 @@ namespace Rhodeus
         void operator=(ComponentManager const&) = delete;
 
     private:
-        std::vector<AbstractComponent*> _components;
+        std::vector<AbstractComponent*> mComponents;
     };
 }
 
