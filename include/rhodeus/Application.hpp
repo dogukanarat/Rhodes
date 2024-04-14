@@ -2,7 +2,9 @@
 #define INCLUDED_RHODEUS_APPLICATION_HPP
 
 #include <string>
+
 #include <plog/Initializers/RollingFileInitializer.h>
+
 #include "rhodeus/Common.hpp"
 #include "rhodeus/CustomLogFormatter.hpp"
 #include "rhodeus/Component.hpp"
@@ -43,13 +45,17 @@ namespace Rhodeus
         Application(Application const&) = delete;
         void operator=(Application const&) = delete;
 
-        void initializeDataFolder();
-        void initializeLoggers();
+        int32_t initializeFirstStage();
+        int32_t initializeSecondStage();
+        int32_t initializeLoggers();
+        int32_t initializeCommands();
         void registerSignalHandlers();
 
     private:
         bool mIsExitRequested;
         std::string mDataFolder;
+        std::string mConfigurationFile;
+        std::string mHistoryFile;
     };
 }
 

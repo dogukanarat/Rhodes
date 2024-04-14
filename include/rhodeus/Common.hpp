@@ -3,6 +3,10 @@
 
 #include <errno.h>
 #include <stdint.h>
+
+#include <string>
+#include <format>
+
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <plog/Log.h>
@@ -27,6 +31,9 @@
 #define EFAILED              (333u)
 
 #define ERRNO(errno)         (status_t)(-errno)
+
+#define CONSOLE_LOG(message) std::cout << "\r" << message << std::endl
+#define CONSOLE_ERR(message) std::cerr << CERR_LOG_RED << "\r" << message << CERR_LOG_CLR <<  std::endl << std::flush
 
 typedef int32_t status_t;
 typedef uint8_t bool_t;

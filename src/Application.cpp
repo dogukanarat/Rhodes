@@ -20,7 +20,18 @@
 
 using namespace Rhodeus;
 
+
+#if __APPLE__
 #define DATA_FOLDER_PATH       "/opt/rhodeus/"
+#endif /* __APPLE__ */
+
+#ifdef __linux__
+#define DATA_FOLDER_PATH       "/opt/rhodeus/"
+#endif /* __linux__ */
+
+#ifdef _WIN32
+#define DATA_FOLDER_PATH       "C:\\Rhodeus\\"
+#endif /* _WIN32 */
 
 Application& Application::getInstance()
 {
@@ -32,50 +43,56 @@ int32_t Application::run(int argc, char** argv)
 {
     int32_t status = 0;
 
-    mDataFolder = std::filesystem::current_path().string();
-
-    Application::getInstance().registerSignalHandlers();
-    Application::getInstance().initializeDataFolder();
-    Application::getInstance().initializeLoggers();
-
-    Configuration::getInstance().initialize(
-        std::filesystem::path(mDataFolder).append(Data.configFile).string()
-    );
-
-    std::cout << fmt::format("Welcome to {} v{}", Data.name, Data.version) << std::endl;
-    std::cout << fmt::format("Data folder: {}", mDataFolder) << std::endl;
-
-    ComponentManager::getInstance().initializeComponents();
-
-    std::cout << fmt::format("Press Ctrl+C to exit...") << std::endl;
-
-    linenoisecli::cli::getInstance().setPrompt(Data.prompt);
-    linenoisecli::cli::getInstance().setHistoryFile(
-        std::filesystem::path(mDataFolder).append(Data.historyFile).string()
-    );
-    linenoisecli::cli::getInstance().run(argc, argv);
-
-    while ((false == linenoisecli::cli::getInstance().isExitRequested()) && (false == mIsExitRequested))
+    for (;;)
     {
-        // Do nothing
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        Application::getInstance().registerSignalHandlers();
+
+        status = Application::getInstance().initializeFirstStage();
+        if (0 != status)
+        {
+            CONSOLE_LOG(fmt::format("Failed to initialize first stage!"));
+            break;
+        }
+
+        status = Application::getInstance().initializeSecondStage();
+        if (0 != status)
+        {
+            CONSOLE_LOG(fmt::format("Failed to initialize second stage!"));
+            break;
+        }
+
+        ComponentManager::getInstance().initializeComponents();
+
+        CONSOLE_LOG(fmt::format("Press Ctrl+C to exit..."));
+
+        linenoisecli::cli::getInstance().setPrompt(Data.prompt);
+        linenoisecli::cli::getInstance().setHistoryFile(mHistoryFile);
+        linenoisecli::cli::getInstance().run(argc, argv);
+
+        while ((false == linenoisecli::cli::getInstance().isExitRequested()) && (false == mIsExitRequested))
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        CONSOLE_LOG(fmt::format("Exiting safely..."));
+
+        linenoisecli::cli::getInstance().destroy();
+
+        ComponentManager::getInstance().destroyComponents();
+
+        IpcContext::getInstance().clearResources();
+
+        break;
     }
 
-    linenoisecli::cli::getInstance().destroy();
-
-    std::cout << fmt::format("Exiting safely...") << std::endl;
-
-    ComponentManager::getInstance().destroyComponents();
-
-    IpcContext::getInstance().clearResources();
-
-    std::cout << fmt::format("Process status: {}", status) << std::endl;
+    CONSOLE_LOG(fmt::format("Process status: {}", status));
 
     return status;
 }
 
-void Application::initializeDataFolder()
+int32_t Application::initializeFirstStage()
 {
+    int32_t status = 0;
     bool isDirCreated = false;
     std::filesystem::path dataFolder = std::filesystem::path(DATA_FOLDER_PATH);
 
@@ -84,53 +101,167 @@ void Application::initializeDataFolder()
         if (!std::filesystem::exists(dataFolder))
         {
             isDirCreated = std::filesystem::create_directory(dataFolder);
-
             if (!isDirCreated)
             {
-                throw std::runtime_error(
-                    fmt::format("Failed to create data folder: {}",
-                        dataFolder.string()
-                    )
-                );
+                throw std::runtime_error(fmt::format("Failed to create data folder: {}", dataFolder.string()));
             }
         }
 
         mDataFolder = std::filesystem::canonical(dataFolder).string();
+        mConfigurationFile = std::filesystem::path(mDataFolder).append(Data.configFile).string();
+        mHistoryFile = std::filesystem::path(mDataFolder).append(Data.historyFile).string();
+
+        CONSOLE_LOG(fmt::format("Data folder: {}", mDataFolder));
+        CONSOLE_LOG(fmt::format("Configuration file: {}", mConfigurationFile));
+        CONSOLE_LOG(fmt::format("History file: {}", mHistoryFile));
+
     }
     catch(const std::exception& e)
     {
-        std::cerr
-            << CERR_LOG_RED "Exception: "
-            << e.what()
-            << CERR_LOG_CLR
-            << std::endl;
+        CONSOLE_ERR(fmt::format("Exception: {}", e.what()));
+        status = -1;
     }
+
+    return status;
 }
 
-void Application::initializeLoggers()
+int32_t Application::initializeSecondStage()
 {
-    std::filesystem::create_directory(std::filesystem::path(mDataFolder).append("logs"));
-    std::string logFile = std::filesystem::path(mDataFolder)
-        .append("logs")
-        .append(Data.logFile)
-        .string();
+    int32_t status = 0;
 
-    static plog::ColorConsoleAppender<CustomLogFormatter> consoleAppender;
+    try
+    {
+        Configuration::getInstance().initialize(mConfigurationFile);
 
-    static plog::RollingFileAppender<CustomLogFormatter> fileAppender(
-            logFile.c_str(),
-            Data.logFileMaxSize,
-            Data.logFileMaxCount);
+        status = Application::getInstance().initializeLoggers();
+        if (0 != status)
+        {
+            throw std::runtime_error(fmt::format("Failed to initialize loggers!"));
+        }
+        status = Application::getInstance().initializeCommands();
+        if (0 != status)
+        {
+            throw std::runtime_error(fmt::format("Failed to initialize commands!"));
+        }
+    }
+    catch(const std::exception& e)
+    {
+        CONSOLE_ERR(fmt::format("Exception: {}", e.what()));
+        status = -1;
+    }
 
-    plog::init(plog::debug, &consoleAppender).addAppender(&fileAppender);
+    return status;
+}
 
-    PLOGV << fmt::format("Log file: {}", logFile);
+int32_t Application::initializeLoggers()
+{
+    int32_t status = 0;
+    bool isLogFolderCreated = false;
+    plog::Severity logLevel = plog::debug;
+    std::filesystem::path logFolder = std::filesystem::path(mDataFolder).append("logs");
+    std::filesystem::path logFile = std::filesystem::path(mDataFolder).append("logs").append(Data.logFile);
+    static plog::ColorConsoleAppender<CustomLogFormatterConsole> consoleAppender;
+    static plog::RollingFileAppender<CustomLogFormatterFile> fileAppender(logFile.string().c_str(), Data.logFileMaxSize, Data.logFileMaxCount);
+
+
+    for (;;)
+    {
+        isLogFolderCreated = std::filesystem::exists(logFile);
+        if (!isLogFolderCreated)
+        {
+            isLogFolderCreated = std::filesystem::create_directory(logFolder);
+            if (!isLogFolderCreated)
+            {
+                PLOGE << fmt::format("Failed to create log folder: {}", logFolder.string());
+                status = -1;
+                break;
+            }
+        }
+
+        plog::init(logLevel, &consoleAppender).addAppender(&fileAppender);
+
+        break;
+    }
+
+    return status;
+}
+
+int32_t Application::initializeCommands()
+{
+    int32_t status = 0;
+
+    auto callbackVersion = [](linenoisecli::cli::ArgumentMap& args) -> int32_t
+    {
+        int32_t status = 0;
+        UNUSED(args);
+        std::cout << fmt::format("Version: {}", Data.version) << std::endl;
+        return status;
+    };
+    auto callbackLogLevel = [](linenoisecli::cli::ArgumentMap& args) -> int32_t
+    {
+        int32_t status = 0;
+        std::string argLogLevel;
+        std::string currentLogLevel;
+        bool isSet = false;
+        bool isFound = false;
+        std::map<plog::Severity, std::string> logLevelMap =
+        {
+            { plog::none, "none" },
+            { plog::fatal, "fatal" },
+            { plog::error, "error" },
+            { plog::warning, "warning" },
+            { plog::info, "info" },
+            { plog::debug, "debug" },
+            { plog::verbose, "verbose" },
+        };
+
+        for (;;)
+        {
+            isSet = args.contains("logLevel");
+            if (isSet)
+            {
+                // set plog severity
+                argLogLevel = args["logLevel"];
+                for (auto& [severity, level] : logLevelMap)
+                {
+                    if (level == argLogLevel)
+                    {
+                        plog::get()->setMaxSeverity(severity);
+                        isFound = true;
+                        break;
+                    }
+                }
+                if (!isFound)
+                {
+                    CONSOLE_ERR(std::format("Invalid log level: {}", argLogLevel));
+                    CONSOLE_ERR(std::format("Valid log levels: none, fatal, error, warning, info, debug, verbose"));
+                    status = -1;
+                    break;
+                }
+            }
+            currentLogLevel = logLevelMap[plog::get()->getMaxSeverity()];
+            CONSOLE_LOG(std::format("Current log level: {}", currentLogLevel));
+            break;
+        }
+
+        return status;
+    };
+
+    for (;;)
+    {
+        linenoisecli::cli::getInstance().registerCommand("version", callbackVersion);
+        linenoisecli::cli::getInstance().registerCommand("logLevel [<logLevel>]", callbackLogLevel);
+        break;
+    }
+
+    return status;
+
 }
 
 void Application::signalHandler(int32_t signum)
 {
     std::string signalName = "UNKNOWN";
-    std::map<int32_t, std::string> signalMap
+    static std::map<int32_t, std::string> signalMap
     {
         { SIGINT, "SIGINT" },
         { SIGABRT, "SIGABRT" },
@@ -142,23 +273,9 @@ void Application::signalHandler(int32_t signum)
         signalName = signalMap[signum];
     }
 
-    std::cerr << "\r";
-    std::cerr
-        << CERR_LOG_RED "Interrupt signal ("
-        << signalName
-        << ") received" CERR_LOG_CLR
-        << std::endl;
-    std::cerr << "Application will be terminated safely!" << std::endl;
-    std::cerr << std::flush;
-    Application::getInstance().mIsExitRequested = true;
-}
+    CONSOLE_ERR(fmt::format("Interrupt signal ({}) received", signalName));
 
-void sigActionSegFault(int signal, siginfo_t *si, void *arg)
-{
-    UNUSED(signal);
-    UNUSED(arg);
-    printf("Caught segfault at address %p\n", si->si_addr);
-    exit(0);
+    Application::getInstance().mIsExitRequested = true;
 }
 
 void Application::registerSignalHandlers()
@@ -167,12 +284,4 @@ void Application::registerSignalHandlers()
     signal(SIGINT, Application::signalHandler);
     signal(SIGABRT, Application::signalHandler);
     signal(SIGTERM, Application::signalHandler);
-
-    // Register segfault handler
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(struct sigaction));
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = sigActionSegFault;
-    sa.sa_flags   = SA_SIGINFO;
-    sigaction(SIGSEGV, &sa, NULL);
 }

@@ -5,6 +5,12 @@
 
 using namespace Rhodeus;
 
+IpcClient& IpcClient::getInstance()
+{
+    static IpcClient instance;
+    return instance;
+}
+
 int32_t IpcClient::initialize()
 {
     int32_t status = 0;
@@ -113,8 +119,6 @@ void IpcClient::task(IpcClient *client)
                 client->mIsExitRequested = true;
             }
 
-
-
             break;
         }
 
@@ -126,11 +130,3 @@ void IpcClient::task(IpcClient *client)
 
     PLOGD << "IpcClient task finished";
 }
-
-#if 0
-static void setup(void)
-{
-    IpcClient::getInstance().setId(0).setName("Launcher");
-    std::cout << fmt::format("Setting up IpcClient") << std::endl;
-}
-#endif

@@ -9,11 +9,7 @@ namespace Rhodeus
     class IpcClient : public IpcEndPoint
     {
     public:
-        static IpcClient& getInstance()
-        {
-            static IpcClient instance;
-            return instance;
-        }
+        static IpcClient& getInstance();
 
         IpcClient& setName(const std::string& name) { mEndPointName = name; return *this; }
         IpcClient& setId(uint32_t id) { mEndPointId = id; return *this; }
